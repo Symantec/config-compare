@@ -350,10 +350,10 @@ class ConfigCompare(object):
             if isinstance(blueprint_branch, float):
                 _do_plain_text(blueprint, label, compare_root, str(blueprint_branch))
             # test to see if we have xml-like data
-            elif re.match("\s*<\w+>", blueprint_branch) or re.match("\s*<\?xml version", blueprint_branch) \
-                    or re.match("\s*<!--", blueprint_branch):
+            elif re.match("(\s*\n*\s*)*<\w+>", blueprint_branch) or re.match("(\s*\n*\s*)*<\?xml version", blueprint_branch) \
+                    or re.match("(\s*\n*\s*)*<!--", blueprint_branch):
 
-                xml_tree = xmltodict.parse(blueprint_branch)
+                xml_tree = xmltodict.parse(str(blueprint_branch).replace("\n",''))
                 # walk xml to the end
                 compare_root = self._do_branch(blueprint, label, compare_root, xml_tree)
 
@@ -595,10 +595,7 @@ class ConfigCompare(object):
             self.file_hdl = open(self.output_file, 'w')
 
         # generate report headers
-        headers = "PATH\tVALUE"
-        for b in self.configs:
-            headers += "\t%s" % b
-        headers += "\tCOMPLETE VALUE IF TRUNCATED"
+        headers = "PATH\tVALUE\t" + "\t".join(self.configs) + "\tCOMPLETE VALUE IF TRUNCATED"
 
         # write headers
         if self.file_hdl is not None:
