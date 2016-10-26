@@ -258,6 +258,11 @@ class ConfigCompare(object):
         :return: <dictionary>
         """
 
+        # Beware HACK!  It is assumed that blueprint_branch will be defined, but in XML there can
+        # be a value without value
+        if blueprint_branch is None:
+            blueprint_branch = ''
+
         # see if we were passed parsed XML in an OrderedDict
         if isinstance(blueprint_branch, collections.OrderedDict):
             # make path label for this XML chunk
@@ -282,16 +287,16 @@ class ConfigCompare(object):
                     attr_label = clean_k
                     attr_value = blueprint_branch[k]
 
-            # build label for tracking paths and values
-            if attr_value is not None:
-                if pass_label is not None:
-                    pass_label += ' : %s' % attr_label
-                else:
-                    pass_label = attr_label
+                # build label for tracking paths and values
+                if attr_value is not None:
+                    if pass_label is not None:
+                        pass_label += ' : %s' % attr_label
+                    else:
+                        pass_label = attr_label
 
-                compare_root = _chk_label(compare_root, pass_label, blueprint)
-                # walk branch to the end
-                compare_root = self._do_branch(blueprint, pass_label, compare_root, attr_value)
+                    compare_root = _chk_label(compare_root, pass_label, blueprint)
+                    # walk branch to the end
+                    compare_root = self._do_branch(blueprint, pass_label, compare_root, attr_value)
 
             # now process each element of the XML
             for k in sorted(blueprint_branch.keys()):
@@ -353,9 +358,14 @@ class ConfigCompare(object):
             elif re.match("(\s*\n*\s*)*<\w+>", blueprint_branch) or re.match("(\s*\n*\s*)*<\?xml version", blueprint_branch) \
                     or re.match("(\s*\n*\s*)*<!--", blueprint_branch):
 
-                xml_tree = xmltodict.parse(str(blueprint_branch).replace("\n",''))
-                # walk xml to the end
-                compare_root = self._do_branch(blueprint, label, compare_root, xml_tree)
+                # empty elements will not be parsed to a dictionary, so treat them as text
+                xml_tree = ''
+                try:
+                    xml_tree = xmltodict.parse(str(blueprint_branch).replace("\n",''))
+                    # walk xml to the end
+                    compare_root = self._do_branch(blueprint, label, compare_root, xml_tree)
+                except:
+                    _do_plain_text(blueprint, label, compare_root, blueprint_branch)
 
             # test to see if we have a multiline text config
             elif re.search("\n", blueprint_branch):
